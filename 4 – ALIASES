@@ -1,0 +1,53 @@
+REPORT  zombie_alias.
+ 
+* Começamos com a declaração de uma interface qualquer
+INTERFACE interface1.
+  METHODS metodo.
+ENDINTERFACE.                                               "interface1
+ 
+*----------------------------------------------------------------------*
+*       CLASS lcl_alias DEFINITION
+*----------------------------------------------------------------------*
+CLASS lcl_alias DEFINITION.
+ 
+* Na sessão pública, vou adicionar a interface, e um ALIAS para
+* um método definido na interface
+  PUBLIC SECTION.
+    INTERFACES interface1.
+    METHODS teste_alias.
+ 
+*   Aqui o comando que cria um nickname(apelido) para o método
+*   da interface
+    ALIASES met1 FOR interface1~metodo.
+ENDCLASS.                    "lcl_alias DEFINITION
+ 
+*----------------------------------------------------------------------*
+*       CLASS lcl_alias IMPLEMENTATION
+*----------------------------------------------------------------------*
+CLASS lcl_alias IMPLEMENTATION.
+ 
+* Implementação do método da interface
+  METHOD interface1~metodo.
+    WRITE 'Hi there!'.
+  ENDMETHOD.                    "interface1~metodo
+ 
+* Esse é um método da própria classe, que chama o método da interface
+* utilizando um ALIAS
+  METHOD teste_alias.
+    CALL METHOD met1.
+  ENDMETHOD.                    "teste_alias
+ 
+ENDCLASS.                    "lcl_alias IMPLEMENTATION
+ 
+* Referênciando nossa classe local
+DATA: o_alias TYPE REF TO lcl_alias.
+ 
+*--------------------------------------------------------------------*
+* START-OF-SELECTION
+*--------------------------------------------------------------------*
+START-OF-SELECTION.
+ 
+  CREATE OBJECT o_alias.
+ 
+* A chamada do método vai escrever o "Hi There!" na tela. E é só :)
+  o_alias->teste_alias( ).
