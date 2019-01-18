@@ -1,0 +1,36 @@
+REPORT  zombie_add_corresponding.
+ 
+* Types - Note que tem o campo adicional char em cada uma das
+* estruturas
+TYPES: BEGIN OF ty_add1,
+        val1 TYPE i,
+        val2 TYPE i,
+        name TYPE char10,
+       END OF ty_add1.
+ 
+TYPES: BEGIN OF ty_add2,
+        nome TYPE char10,
+        val1 TYPE i,
+        val2 TYPE i,
+      END OF ty_add2.
+ 
+* Work Areas
+DATA: wa_add1 TYPE ty_add1,
+      wa_add2 TYPE ty_add2.
+ 
+*--------------------------------------------------------------------*
+* START-OF-SELECTION
+*--------------------------------------------------------------------*
+START-OF-SELECTION.
+ 
+* Valores
+wa_add1-val1 = 10.
+wa_add1-val2 = 10.
+ 
+wa_add2-val1 = 5.
+wa_add2-val2 = 5.
+ 
+* Magicamente, ele vai deixar os valores somados na estrutura wa_add2
+ADD-CORRESPONDING wa_add1 TO wa_add2.
+ 
+BREAK-POINT.
