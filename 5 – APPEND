@@ -1,0 +1,35 @@
+REPORT  zombie_append.
+ 
+* Tabela principal e tabela para cópia.
+DATA: t_mara  TYPE TABLE OF mara,
+      t_mara2 TYPE TABLE OF mara INITIAL SIZE 10.
+*      t_mara2 TYPE TABLE OF mara INITIAL SIZE 2.
+ 
+* Work area genérica
+DATA: wa_mara LIKE LINE OF t_mara.
+ 
+* APPEND simples
+wa_mara-matnr = '1'.
+APPEND wa_mara TO t_mara.
+ 
+* APPEND linha vazia
+APPEND INITIAL LINE TO t_mara.
+ 
+BREAK-POINT.
+ 
+* APPEND seguido de SORT
+wa_mara-matnr = '3'.
+APPEND wa_mara TO t_mara2 SORTED BY matnr.
+ 
+wa_mara-matnr = '1'.
+APPEND wa_mara TO t_mara2 SORTED BY matnr.
+ 
+wa_mara-matnr = '2'.
+APPEND wa_mara TO t_mara2 SORTED BY matnr.
+ 
+BREAK-POINT.
+ 
+* APPEND de dados de uma tabela em outra tabela
+APPEND LINES OF t_mara TO t_mara2.
+ 
+BREAK-POINT.
