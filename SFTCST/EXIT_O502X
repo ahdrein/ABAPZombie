@@ -1,0 +1,281 @@
+*&---------------------------------------------------------------------*
+*& Report  /SFTCST/EXIT_O502X
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  /SFTCST/EXIT_O502X.
+
+include: /sftcmx/do502dx,
+         /sftcmx/d001dx,
+         /sftcmx/do502fx.
+
+TYPES: BEGIN OF e_processo_excluido,
+          objectclas     TYPE  cdpos-objectclas,
+          objectid       TYPE  cdpos-objectid,
+          changenr       TYPE  cdpos-changenr,
+          tabname        TYPE  cdpos-tabname,
+          tabkey         TYPE  cdpos-tabkey,
+          fname          TYPE  cdpos-fname,
+          chngind        TYPE  cdpos-chngind,
+          num_processo   TYPE  /sftcmx/exp_02a-num_processo,
+         END   OF e_processo_excluido.
+
+DATA: t_processo_excluido TYPE TABLE OF e_processo_excluido,
+      w_processo_excluido TYPE e_processo_excluido.
+
+CONSTANTS: c_likp(4)   TYPE c VALUE 'LIKP',
+           c_y(1)      TYPE c VALUE 'Y'.
+
+*&---------------------------------------------------------------------*
+*&      Form  ue_campos_extras
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM ue_campos_extras.
+
+  TYPES: BEGIN OF ue_el_vbkd,
+           vbeln TYPE vbkd-vbeln,
+           bstkd TYPE vbkd-bstkd,
+         END OF ue_el_vbkd,
+
+         BEGIN OF ue_el_konv,
+           knumv TYPE konv-knumv,
+           kposn TYPE konv-kposn,
+           kbetr TYPE konv-kbetr,
+         END OF ue_el_konv,
+
+         BEGIN OF ue_el_likp,
+           vbeln TYPE likp-vbeln,
+           lifex TYPE likp-lifex,
+         END OF ue_el_likp.
+
+  DATA: ue_tl_vbkd      TYPE SORTED TABLE OF ue_el_vbkd WITH UNIQUE KEY vbeln,
+        ue_tl_konv      TYPE SORTED TABLE OF ue_el_konv WITH NON-UNIQUE KEY knumv kposn,
+        ue_tl_likp      TYPE SORTED TABLE OF ue_el_likp WITH UNIQUE KEY vbeln,
+        ue_wl_vbkd      TYPE ue_el_vbkd,
+        ue_wl_konv      TYPE ue_el_konv,
+        ue_wl_likp      TYPE ue_el_likp,
+        ue_vl_vbeln_ord TYPE vbak-vbeln,
+        ue_vl_posnr_ord TYPE vbap-posnr,
+        ue_vl_vbeln_rem TYPE likp-vbeln,
+        ue_vl_posnr_rem TYPE lips-posnr.
+
+  CONSTANTS: ue_condprice_bandag TYPE c LENGTH 4 VALUE 'ZPR5'.
+
+  FIELD-SYMBOLS: <ue_fl_exp_02a> TYPE /sftcmx/exp_02a,
+                 <ue_fl_exp_02b> TYPE /sftcmx/exp_02b.
+
+  CHECK NOT t_likp[] IS INITIAL.
+
+  SELECT vbeln lifex
+    FROM likp
+    INTO TABLE ue_tl_likp
+    FOR ALL ENTRIES IN t_likp
+    WHERE vbeln = t_likp-vbeln.
+
+  CHECK NOT t_lips[] IS INITIAL.
+
+  SELECT vbeln vtweg spart vkgrp bukrs_vf
+         knumv waerk
+    FROM vbak
+    INTO TABLE t_vbak
+    FOR ALL ENTRIES IN t_lips
+    WHERE vbeln = t_lips-vgbel.
+
+  CHECK NOT t_vbak[] IS INITIAL.
+
+  SELECT vbeln bstkd
+    FROM vbkd
+    INTO TABLE ue_tl_vbkd
+    FOR ALL ENTRIES IN t_vbak
+    WHERE vbeln = t_vbak-vbeln
+      AND posnr = ue_vl_posnr_ord.  "00000
+
+  SELECT knumv kposn kbetr
+    FROM konv
+    INTO TABLE ue_tl_konv
+    FOR ALL ENTRIES IN t_vbak
+    WHERE knumv = t_vbak-knumv
+      AND kschl = ue_condprice_bandag.
+
+  SORT: t_vbak BY vbeln,
+        t_lips BY vbeln posnr.
+
+  LOOP AT ti_zsfw_exp_02a ASSIGNING <ue_fl_exp_02a>.
+
+    ue_vl_vbeln_rem = <ue_fl_exp_02a>-num_processo.
+
+    LOOP AT ti_zsfw_exp_02b ASSIGNING <ue_fl_exp_02b>
+                                WHERE id_ligacao_pai = <ue_fl_exp_02a>-id_ligacao.
+
+      ue_vl_vbeln_ord = <ue_fl_exp_02b>-num_ordem.
+      ue_vl_posnr_ord = <ue_fl_exp_02b>-seq_it_ordem.
+      ue_vl_posnr_rem = <ue_fl_exp_02b>-seq_it_processo.
+
+      READ TABLE ue_tl_vbkd INTO ue_wl_vbkd
+                  WITH TABLE KEY vbeln = ue_vl_vbeln_ord.
+      IF sy-subrc EQ 0.
+        <ue_fl_exp_02b>-flex_field1 = ue_wl_vbkd-bstkd.
+      ENDIF.
+
+      READ TABLE t_vbak INTO w_vbak
+                    WITH KEY vbeln = ue_vl_vbeln_ord
+                    BINARY SEARCH.
+      IF sy-subrc EQ 0.
+        READ TABLE ue_tl_konv INTO ue_wl_konv
+                    WITH TABLE KEY knumv = w_vbak-knumv
+                                   kposn = ue_vl_posnr_ord.
+        IF sy-subrc EQ 0.
+          <ue_fl_exp_02b>-flex_field2 = ue_wl_konv-kbetr.
+        ENDIF.
+      ENDIF.
+
+      READ TABLE t_lips INTO w_lips
+              WITH KEY vbeln = ue_vl_vbeln_rem
+                       posnr = ue_vl_posnr_rem
+              BINARY SEARCH.
+      IF sy-subrc EQ 0.
+        CALL FUNCTION 'CONVERSION_EXIT_CUNIT_OUTPUT'
+          EXPORTING
+            input    = w_lips-meins
+            language = vg_langu
+          IMPORTING
+            output   = <ue_fl_exp_02b>-flex_field3.
+      ENDIF.
+
+    ENDLOOP.
+    <ue_fl_exp_02a>-flex_field1 = <ue_fl_exp_02b>-num_ordem.
+
+    READ TABLE ue_tl_likp INTO ue_wl_likp
+                WITH TABLE KEY vbeln = ue_vl_vbeln_rem.
+    IF sy-subrc EQ 0.
+      <ue_fl_exp_02a>-flex_field1 = ue_wl_likp-lifex.
+    ENDIF.
+
+  ENDLOOP.
+
+  UNASSIGN: <ue_fl_exp_02a>,
+            <ue_fl_exp_02b>.
+
+  REFRESH: ue_tl_vbkd,
+           ue_tl_konv,
+           ue_tl_likp,
+           t_vbak.
+
+  CLEAR: ue_wl_vbkd,
+         ue_wl_konv,
+         ue_wl_likp,
+         ue_vl_vbeln_ord,
+         ue_vl_posnr_ord,
+         ue_vl_vbeln_rem,
+         ue_vl_posnr_rem,
+         w_vbak,
+         w_lips.
+
+ENDFORM.                                                    "ue_campos_extras
+
+*&------------------------------------------------------------------------------*
+*&      Form  ue_processos_excluidos_01
+*&------------------------------------------------------------------------------*
+*       Leitura das remessas que foram excluídas.
+*       Olhar o t_cdhdr, descobrir os deletados, gravar no t_processo_excluido.
+*-------------------------------------------------------------------------------*
+FORM ue_processos_excluidos_01.
+
+  FIELD-SYMBOLS: <fs_pro_exc> TYPE e_processo_excluido.
+  DATA: w_ctrl_ret_2 TYPE e_ctrl.
+
+    IF NOT t_cdhdr[] IS INITIAL.
+      SELECT objectclas objectid changenr tabname tabkey fname chngind
+       FROM cdpos
+        INTO TABLE t_processo_excluido
+         FOR ALL ENTRIES IN t_cdhdr
+           WHERE objectclas = c_objectclas_del
+           AND   objectid   = t_cdhdr-objectid
+           AND   changenr   = t_cdhdr-changenr
+           AND   chngind    = c_d
+           AND ( tabname    = c_likp ).
+      IF NOT t_processo_excluido[] IS INITIAL.
+        LOOP AT t_processo_excluido ASSIGNING <fs_pro_exc>.
+          <fs_pro_exc>-num_processo = <fs_pro_exc>-objectid(10).
+        ENDLOOP.
+
+        IF <fs_pro_exc> is ASSIGNED.
+            UNASSIGN <fs_pro_exc>.
+        ENDIF.
+
+* Essa tabela precisa ter no minimo 1 registro para o programa não parar
+        IF ti_ctrl_ret[] IS INITIAL.
+          clear: w_ctrl_ret_2.
+          READ TABLE t_processo_excluido INTO w_processo_excluido INDEX 1.
+*          READ TABLE ti_ctrl_ret INTO w_ctrl_ret_2 INDEX 1.
+          w_ctrl_ret_2-vbeln = w_processo_excluido-num_processo.
+          APPEND w_ctrl_ret_2 TO ti_ctrl_ret.
+*           APPEND w_processo_excluido TO ti_ctrl_ret.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+ENDFORM.            "ue_processos_excluidos_01
+
+*&------------------------------------------------------------------------------*
+*&      Form  ue_grava_deletadas_03
+*&------------------------------------------------------------------------------*
+*       Gravar os processos que foram excluidos
+*       Para que eles também sejam excluídos no Export.
+*-------------------------------------------------------------------------------*
+FORM ue_grava_deletadas_03.
+
+  DATA: vl_nrincre(26)      TYPE n  VALUE '00000000000000000000000001',
+        vl_nrseque_02a(26)  TYPE n,
+        vl_nrseque_02b(26)  TYPE n.
+
+
+
+  CHECK NOT t_processo_excluido[] IS INITIAL.
+
+  PERFORM z_obtem_numseq USING     c_zsfw_exp_02a
+                                   vl_nrincre
+                         CHANGING  vl_nrseque_02a.
+
+* Incluir OV excluídas
+  LOOP AT t_processo_excluido INTO w_processo_excluido.
+
+    CLEAR: w_zsfw_exp_02a.
+
+    vl_nrseque_02a = vl_nrseque_02a + vl_nrincre.
+
+*NUM_SEQUENCIAL
+    w_zsfw_exp_02a-num_sequencial = vl_nrseque_02a.
+
+*NUM_PROCESSO
+    w_zsfw_exp_02a-num_processo = w_processo_excluido-objectid(10).
+
+*EMPRESA
+*    w_zsfw_exp_02a-empresa = w_zsfw_exp_02-empresa.
+
+*ID_LIGACAO
+    w_zsfw_exp_02a-id_ligacao = vl_nrseque_02a.
+
+*DELETE_FLAG
+    w_zsfw_exp_02a-flex_field5 = c_d.
+
+    APPEND w_zsfw_exp_02a TO ti_zsfw_exp_02a.
+
+
+
+  ENDLOOP.
+
+  PERFORM z_grava_numseq USING c_zsfw_exp_02a
+                               vl_nrincre
+                               vl_nrseque_02a.
+
+* Atualiza tabela com ultimo nro sequencial utilizado
+  PERFORM z_atualiza_last_nrseq  USING c_zsfw_exp_02a
+                                       vl_nrseque_02a.
+
+  COMMIT WORK.
+
+ENDFORM.            "ue_grava_deletadas_03
