@@ -1,0 +1,205 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ANDREWS_01
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+*-- SYST -- Estrutura de variavel de sistema
+
+REPORT  Z_ANDREWS_01.
+
+*--------------------------------------------------------------------
+*-- 1 Primeiro
+INITIALIZATION.
+TABLES: ZANDREWS.
+
+data: f(20) TYPE c,
+      v(10) TYPE N.
+
+*-- Declarando tabela interna
+data: BEGIN OF it_zandrews OCCURS 10, "whith header line.
+        SHOES     like zandrews-SHOES, "SHOES
+        SHOESTYPE like zandrews-shoestype,
+      END OF it_zandrews.
+
+
+*--Declarando dados
+*--tabela interna
+data: t_zandrews TYPE STANDARD TABLE OF zandrews.
+*--linha da tabela work area
+data: w_zandrews TYPE zandrews.
+
+
+*--------------------------------------------------------------------
+*-- 2 Segundo
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+
+*--Parametros de tela
+PARAMETERS p_cat TYPE c LENGTH 20.
+PARAMETERS: p_read  RADIOBUTTON GROUP g1,
+            p_write RADIOBUTTON GROUP g1.
+
+SELECTION-SCREEN END OF BLOCK b1.
+
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE text-002.
+
+PARAMETERS: p_shoes  type zandrews-shoes,
+            p_shoest type zandrews-shoestype.
+
+SELECTION-SCREEN END OF BLOCK b2.
+
+SELECTION-SCREEN BEGIN OF BLOCK b3 WITH FRAME TITLE text-001.
+
+*--Parametros de tela
+
+PARAMETERS: p_t1 RADIOBUTTON GROUP g3,
+            p_t2 RADIOBUTTON GROUP g3,
+            p_t3 RADIOBUTTON GROUP g3,
+            p_t4 RADIOBUTTON GROUP g3,
+            p_t5 RADIOBUTTON GROUP g3.
+
+SELECTION-SCREEN END OF BLOCK b3.
+
+*--------------------------------------------------------------------
+*-- 3 Terceiro
+
+*--Execution
+START-OF-SELECTION.
+
+ WRITE 'Click me!' COLOR = 5 HOTSPOT.
+
+AT LINE-SELECTION.
+  WRITE: / 'You clicked list', sy-listi,
+         / 'You are on list',  sy-lsind.
+  IF sy-lsind < 20.
+    SKIP.
+    WRITE: 'More ...' COLOR = 5 HOTSPOT.
+  ENDIF.
+
+
+*-- Cabeçaçho
+write 'Andrews Treino ABAP 01'(002). "Usando Symbol
+write : /3 'Data: ' RIGHT-JUSTIFIED, SY-DATUM RIGHT-JUSTIFIED.
+SKIP 1.
+
+*-- Nova Pagina
+New-PAGE. "NO-TITLE.
+write : / 'Pagina: ', SY-PAGNO RIGHT-JUSTIFIED.
+SKIP 1.
+
+  IF p_read = 'X'.
+    "-- Primeira forma de select
+    select * from zandrews into table t_zandrews.
+    loop at  t_zandrews into w_zandrews.
+      write: / 'Sapato: ', w_zandrews-shoes, 'Tipo: ', w_zandrews-shoestype.
+      HIDE w_zandrews-SHOES. " variavel para passar para a linha selecionada
+    endloop.
+
+
+
+    "-- Segunda forma de carregar uma tabela interna
+    write: / ' --------------- Segunda forma de select'.
+    "select zandrews~shoes
+    "       zandrews~shoestype
+    "INTO TABLE it_zandrews
+    "FROM zandrews.
+
+
+
+    "-- Exemplo Loop
+    "loop at it_zandrews from 2 to 3.
+    "  write: / ': '.
+    "endloop.
+
+    "-- Terceira forma
+    write: / ' --------------- Terceira forma de select'.
+    select zandrews~shoes
+           zandrews~shoestype
+    FROM zandrews INTO it_zandrews.
+      append it_zandrews.
+      write: / it_zandrews-SHOES.
+      HIDE it_zandrews-SHOES. " variavel para passar para a linha selecionada
+    ENDSELECT.
+
+    "-- exemplo ler tabela
+    "-- read Short in decrease
+    "READ TABLE it_zandrews INDEX 1.
+
+
+*     Assert que irá disparar um DUMP, por não ter nenhum controle
+*     externo
+*    ASSERT SY-PAGNO > 5.
+
+  ELSEIF p_write = 'X'.
+    w_zandrews-shoes = p_shoes.
+    w_zandrews-shoestype = p_shoest.
+
+    INSERT zandrews from w_zandrews.
+
+    if SY-SUBRC = 0.
+      message s000(abap) with 'Dados inseridos com sucesso'.
+      "message i000(abap) with 'Dados inseridos com sucesso'.
+    else.
+      message e000(abap) with 'Dados inseridos com erro'.
+      "message w000(abap) with 'Dados inseridos com sucesso'.
+    endif.
+
+  ENDIF.
+
+" Quando selecitonar uma linha da tabela interface acima
+AT LINE-SELECTION.
+  write: / ' Line Select ' COLOR = 5 HOTSPOT.
+
+"--
+"GET CURSOR FIELD f  VALUE v.
+"IF f = "shoes" or "shoes".
+"  write: / v.
+"ENDIF.
+
+"write / 'F1 ou Shift+F12'.
+"at PF1.
+"  write: / ' PF1.'.
+"at PF24.
+"  write: / ' PF24'.
+
+
+"at USER-COMMAND.
+"if sy-ucomm=20.
+  "
+"  pressed.
+  "
+"ENDIF.
+
+"  if p_t1 = 'X'.
+"    message a000(abap) with 'Abend'.
+"    message x000(abap) with 'Exit'.
+"  ELSEIF p_t2 = 'X'.
+"      message s000(abap) with 'Sucesso'.
+"  ELSEIF p_t3 = 'X'.
+"    message i000(abap) with 'Info'.
+"  ELSEIF p_t4 = 'X'.
+"    message e000(abap) with 'Erro'.
+"  ELSEIF p_t5 = 'X'.
+"    message w000(abap) with 'Warning'.
+"  ENDIF.
+MESSAGE 'BLABLABLA' TYPE 'S'.
+"SE91 -> Criar Message Class
+
+*--------------------------------------------------------------------
+*-- 5 Quarto
+TOP-OF-PAGE.
+write: / ' Começo AQUI!!!!!!!....'.
+
+*--------------------------------------------------------------------
+*-- 5 Quinto
+END-OF-PAGE.
+*REPORT teste LINE-COUNT 60 (4).
+write: / ' FIM....'.
+
+*--------------------------------------------------------------------
+*-- 6 Sexto
+END-OF-SELECTION.
+
+
+*-- break-point.
