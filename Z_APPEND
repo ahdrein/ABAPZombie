@@ -1,0 +1,30 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_APPEND
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  z_append.
+
+DATA: t_mara TYPE TABLE OF mara,
+      t_mara2 TYPE TABLE OF mara INITIAL SIZE 10.
+
+DATA: wa_mara LIKE LINE OF t_mara.
+
+wa_mara-matnr = '1'.
+APPEND wa_mara to t_mara.
+
+wa_mara-matnr = '5'.
+APPEND wa_mara  TO t_mara2 SORTED BY matnr.
+
+wa_mara-matnr = '2'.
+APPEND wa_mara TO t_mara2 SORTED BY matnr.
+
+wa_mara-matnr = '8'.
+APPEND wa_mara to t_mara2 SORTED BY matnr.
+
+APPEND LINES OF t_mara TO t_mara2.
+
+BREAK-POINT.
