@@ -1,0 +1,12 @@
+ABAPZombie Guide to ABAP – Parte 8 – FIELD-SYMBOLS
+O commando FIELD-SYMBOLS é usada para declarar uma referência à uma área de memória.
+
+A declaração dessas refência pode ou não ter um tipo definido. Você pode declarar um field-symbol type ANY, ou type ANY TABLE, indicando que ele estará pronto para referênciar qualquer tipo de variável ou tabela.
+
+Para associar uma área de memória à um field-symbol, utilizando o comando ASSIGN.
+
+Exemplos de Declaração:
+
+FIELD-SYMBOLS: <fs_any>   TYPE ANY,       "Qualquer coisa menos tabelas
+               <fs_table> TYPE ANY TABLE, "Qualquer tabela
+               <fs_vbak>  TYPE vbak.      "Tipo definido
